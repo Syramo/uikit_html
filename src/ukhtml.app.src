@@ -1,5 +1,5 @@
 {application, ukhtml,
- [{description, "An OTP library"},
+ [{description, "OTP library to easily crate UIKIT html"},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,
