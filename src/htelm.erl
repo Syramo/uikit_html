@@ -1,106 +1,116 @@
 -module(htelm).
 
--export([document/2, document/3]).
 
--export([t_div/2,t_p/2,t_span/2]).
--export([t_h1/1,t_h2/1,t_h3/1,t_h4/1,t_h5/1,t_h6/1,t_h1/2,t_h2/2,t_h3/2,t_h4/2,t_h5/2,t_h6/2]).
+-export ([open/1, close/1, allow_child/1]).
+
+-export_type([ht_elm/0,vd_elm/0,tx_elm/0]).
+
+% standard html elements that are supported
+-export ([t_html/0,t_html/1,t_head/0,t_head/1,t_body/0,t_body/1]).
+-export ([t_meta/1, t_meta/2, t_link/1, t_link_css/1]).
 
 
-
--import(htutil,[escape_text/1]).
-
+-import (htutil,[escape_text/1]).
 
 
-% creating a document providing attributes the head element and the body element
+%%----------type definition-----------------------------------------------------
 
-document (Head, Body) ->
-	document ([],Head, Body).
+%	ht_elm - standard element with contents (other elements) with open and close tag
+-record(ht_elm, {name :: atom(), id= ""	:: string(), attr = #{}	:: attributes()}).
 	
-
-document (Attr, Head, Body) ->
-	iolist_to_binary([<<"<!DOCTYPE html>\n">>, element("HTML",Attr,[Head, Body]),"\n"]).
-
-
-
-
-
-% structural html elements
-
-t_div (A,C) -> lists:flatten(["\n",element("div",A,C),"\n"]).
-
-t_p (A, C) -> lists:flatten(["\n",element("p",A,C),"\n"]).
-
-t_span (A, C) -> element("span",A,C).
-
-
-
-%headings 
-
-t_h1 (C)   -> t_h1([],C).
-t_h1 (A,C) -> lists:flatten(["\n",element("h1",A,C),"\n"]).
-
-t_h2 (C)   -> t_h2([],C).
-t_h2 (A,C) -> lists:flatten(["\n",element("h2",A,C),"\n"]).
-
-t_h3 (C)   -> t_h3([],C).
-t_h3 (A,C) -> lists:flatten(["\n",element("h3",A,C),"\n"]).
-
-t_h4 (C)   -> t_h4([],C).
-t_h4 (A,C) -> lists:flatten(["\n",element("h4",A,C),"\n"]).
-
-t_h5 (C)   -> t_h5([],C).
-t_h5 (A,C) -> lists:flatten(["\n",element("h5",A,C),"\n"]).
-
-t_h6 (C)   -> t_h6([],C).
-t_h6 (A,C) -> lists:flatten(["\n",element("h6",A,C),"\n"]).
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%% internal functions
-%%
-%%
-
+%	vd_elm - empty html element that has no close tag and no contents
+-record(vd_elm, {name :: atom(), id = "" :: string(), attr = #{} :: attributes()}).
 	
-element (Name,Attr,Content) ->
-	Tag = tag_name(Name),
-	["<",Tag,attribute_string(Attr),">",Content,"</",Tag,">"].
+%	tx_elm - dummy element that holds notmal text that will be escaped, id is for internal node reference only
+-record(tx_elm,{id = ""	:: string(), content :: string()}).
 	
 	
-tag_name (Name) ->
-	case is_atom(Name) of
-		true -> atom_to_list(Name);
-		_	 -> string:lowercase(Name)
+-opaque ht_elm() :: #ht_elm{}.
+-opaque vd_elm() :: #vd_elm{}.
+-opaque tx_elm() :: #tx_elm{}.
+-type attributes() :: #{atom() := string()}.
+
+
+
+
+%%----------standard html tags definition---------------------------------------
+
+-spec t_html () -> ht_elm().
+-spec t_html (A :: attributes()) -> ht_elm().
+
+-spec t_head () -> ht_elm().
+-spec t_head (A :: attributes()) -> ht_elm().
+
+-spec t_body () -> ht_elm().
+-spec t_body (A :: attributes()) -> ht_elm().
+
+-spec t_meta (A :: attributes()) -> vd_elm().
+-spec t_meta (Name :: string(), Description :: string()) -> vd_elm().
+
+-spec t_link (A :: attributes()) -> vd_elm().
+-spec t_link_css (Loc :: string()) -> vd_elm().
+
+
+
+%%----------standard html tags implementation-----------------------------------
+
+t_html () -> #ht_elm{name = html}.
+t_html (A) -> #ht_elm{name = html, attr = A}.
+
+t_head () -> #ht_elm{name = head}.
+t_head (A) -> #ht_elm{name = head, attr = A}.
+
+t_body () -> #ht_elm{name = body}.
+t_body (A) -> #ht_elm{name = body, attr = A}.
+
+t_meta (A) -> #vd_elm{name = meta, attr = A}.
+t_meta (N,D) -> #vd_elm{name = meta, attr = #{name => N, description => D}}.
+
+t_link (A) -> #vd_elm{name = link, attr = A}.
+t_link_css (Loc) -> #vd_elm{name = link, attr = #{rel => "stylesheet", type => "text/css", href => Loc}}.
+
+
+%%---------converting tags / elements to string representation------------------
+
+-spec open (Elm :: ht_elm() | vd_elm() | tx_elm()) -> string().
+
+open ({tx_elm,_,C}) -> lists:flatten(escape_text(C));
+
+open ({_,Name,Id,Attr}) when is_atom(Name) ->
+	A = append_id(Id, Attr),
+	case map_size(A) of
+		0 -> lists:flatten(["<",atom_to_list(Name),">"]);
+		_ -> lists:flatten(["<",atom_to_list(Name),attrib_to_list(A),">"])
 	end.
-	
 
 
-%---------------------------
-% handling html element attributes
 
-attribute_string ([]) ->
-	[];
-	
-attribute_string (Al) ->
-	attribute_string (Al, []).
-	
-	
-	
-attribute_string ([],As) ->
-	As;
-	
-attribute_string ([At|Al], As) ->
-	attribute_string(Al,[As, <<" ">>, mk_as(At)]).
-	
+-spec close (Elm :: ht_elm() | vd_elm() | tx_elm()) -> string().
 
-mk_as ({Name, Val}) ->
-	[tag_name(Name),<<"=\"">>,escape_text(Val),<<"\"">>];
-	
-mk_as (Name) ->
-	tag_name(Name).
-	
-	
+close ({tx_elm,_,_}) -> [];		
+close ({vd_elm,_,_,_}) -> [];
+close ({ht_elm,Name,_,_}) when is_atom(Name)-> lists:flatten(["</",atom_to_list(Name),">"]).	
 
+
+
+
+-spec allow_child (Elm :: ht_elm() | vd_elm() | tx_elm()) -> boolean().
+
+allow_child ({ht_elm,_,_,_}) -> true;
+allow_child (_) -> false.
+
+
+
+%%----------internals-----------------------------------------------------------
+
+-spec append_id(Id :: string(), A :: attributes()) -> attributes().
+
+append_id ([],A) -> A;
+append_id (Id,A) -> A#{id => Id}.
+
+
+
+-spec attrib_to_list (A :: attributes()) -> list().
+
+attrib_to_list (A) ->
+	maps:fold(fun (K,V,Acc) when is_atom(K) -> [[" ",atom_to_list(K),"=\"",escape_text(V),"\""] | Acc] end, [], A).

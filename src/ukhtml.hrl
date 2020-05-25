@@ -7,5 +7,15 @@
 		keywords = "erlang,squamish",
 		
 		uikit_js = "js/uikit.min.js",
-		uikit_css = "css/uikit.min.css"
+		uikit_css = "css/uikit.min.css",
+		
+		other_js = [],
+		other_css = []
 	}).
+	
+	
+
+	
+	
+
+	
