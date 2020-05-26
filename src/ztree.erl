@@ -1,10 +1,10 @@
 -module (ztree).
 
--export ([root/1,add_child/2,append/2,prepend/2,delete/1]).
+-export ([root/1,add_child/2,add_children/2,append/2,prepend/2,delete/1]).
 -export ([first_child/1,last_child/1,prev/1,next/1,parent/1,select/2]).
 -export ([value/1,children/1,path/1]).
 
--export_type ([ztree/0]).
+-export_type ([ztree/0,treepath/0]).
 
 
 -type zlist(A) :: {Left::list(A), Right::list(A)}.
@@ -15,7 +15,7 @@
 -opaque ztree() :: {ancestors(), siblings(), treepath()}.
 -type ancestors() :: zlist(znode()).
 -type siblings() :: zlist(znode()).
--type treepath() :: [integer()].
+-opaque treepath() :: [integer()].
 
 
 
@@ -33,6 +33,15 @@ root(Val) -> {[], {[], [{Val, {[],[]}}]}, [1]}.
 add_child (Child, {Ac, {Sl, [{Val, {L, R}}|Rt]}, Pt}) ->
 	N = {Val, {lists:reverse(R) ++ L, [{Child, {[],[]}}]}},
 	{Ac, {Sl, [N|Rt]}, Pt}.
+	
+
+-spec add_children (C::[term()],ztree()) -> ztree().							% add multiple children to the current node
+
+add_children ([], T) -> T;
+
+add_children (Children, {Ac, {Ls, [{Val, {Lc, Rc}}|Rs]}, P}) ->
+	N = {Val, {lists:reverse(Rc) ++ Lc, [{Child, {[],[]}} || Child <- Children]}},
+	{Ac, {Ls, [N|Rs]}, P}.
 	
 
 

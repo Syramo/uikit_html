@@ -7,7 +7,7 @@
 
 % standard html elements that are supported
 -export ([t_html/0,t_html/1,t_head/0,t_head/1,t_body/0,t_body/1]).
--export ([t_meta/1, t_meta/2, t_link/1, t_link_css/1]).
+-export ([t_meta/1, t_meta/2, t_link/1, t_link_css/1, t_script/1]).
 
 
 -import (htutil,[escape_text/1]).
@@ -50,6 +50,8 @@
 -spec t_link (A :: attributes()) -> vd_elm().
 -spec t_link_css (Loc :: string()) -> vd_elm().
 
+-spec t_script (Loc :: string()) -> ht_elm().
+
 
 
 %%----------standard html tags implementation-----------------------------------
@@ -68,6 +70,8 @@ t_meta (N,D) -> #vd_elm{name = meta, attr = #{name => N, description => D}}.
 
 t_link (A) -> #vd_elm{name = link, attr = A}.
 t_link_css (Loc) -> #vd_elm{name = link, attr = #{rel => "stylesheet", type => "text/css", href => Loc}}.
+
+t_script (Loc) -> #ht_elm{name = script, attr = #{src => Loc}}.
 
 
 %%---------converting tags / elements to string representation------------------
