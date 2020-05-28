@@ -28,38 +28,38 @@ root(Val) -> {[], {[], [{Val, {[],[]}}]}, [1]}.
 
 
 
--spec add_child (term(),ztree()) -> ztree().									% a child is always appended to the end
+-spec add_child (ztree(),term()) -> ztree().									% a child is always appended to the end
 
-add_child (Child, {Ac, {Sl, [{Val, {L, R}}|Rt]}, Pt}) ->
+add_child ({Ac, {Sl, [{Val, {L, R}}|Rt]}, Pt}, Child) ->
 	N = {Val, {lists:reverse(R) ++ L, [{Child, {[],[]}}]}},
 	{Ac, {Sl, [N|Rt]}, Pt}.
 	
 
--spec add_children (C::[term()],ztree()) -> ztree().							% add multiple children to the current node
+-spec add_children (ztree(), C::[term()]) -> ztree().							% add multiple children to the current node
 
 add_children ([], T) -> T;
 
-add_children (Children, {Ac, {Ls, [{Val, {Lc, Rc}}|Rs]}, P}) ->
+add_children ({Ac, {Ls, [{Val, {Lc, Rc}}|Rs]}, P}, Children) ->
 	N = {Val, {lists:reverse(Rc) ++ Lc, [{Child, {[],[]}} || Child <- Children]}},
 	{Ac, {Ls, [N|Rs]}, P}.
 	
 
 
--spec append (term(),ztree()) -> ztree() | {error, Reason::string()}.			% append adds a node (Value) after the current node
+-spec append (ztree(),term()) -> ztree() | {error, Reason::string()}.			% append adds a node (Value) after the current node
 																				% and makes it active
-append (_, {[], _, _}) ->
+append ({[], _, _}, _) ->
 	{error, "root can't have siblings"};
 
-append (Val, {Ac, {Sl, [C|Rt]}, [Pc|Pa]}) ->
+append ({Ac, {Sl, [C|Rt]}, [Pc|Pa]}, Val) ->
 	{Ac, {[C|Sl], [{Val, {[],[]}}|Rt]}, [Pc+1|Pa]}.
 
 
--spec prepend (term(),ztree()) -> ztree() | {error, Reason::string()}.			% prepend inserts a node (Value) before the current node
+-spec prepend (ztree(), term()) -> ztree() | {error, Reason::string()}.			% prepend inserts a node (Value) before the current node
 																				% and makes it active
-prepend (_, {[], _, _}) ->
+prepend ({[], _, _},_) ->
 	{error, "root can't have siblings"};
 
-prepend (Val, {Ac, {Ls, Rs}, Pt}) ->
+prepend ({Ac, {Ls, Rs}, Pt}, Val) ->
 	{Ac, {Ls, [{Val, {[],[]}}|Rs]}, Pt}.
 	
 	
@@ -136,9 +136,9 @@ parent ({[{Ls,[{Val,nil}|Rst]}|Ac],Cd,[_|Pt]}) ->
 
 
 
--spec select (treepath(),ztree()) -> ztree() | {error, Reason::string()}.		% selects or sets a path within a tree
+-spec select (ztree(),treepath()) -> ztree() | {error, Reason::string()}.		% selects or sets a path within a tree
 
-select (P, T = {_,_,TP}) ->
+select (T = {_,_,TP}, P) ->
 	{C,D} = prefix_split(P,lists:reverse(TP)),
 	try go_down (D, go_up(length(TP)-length(C),T)) of
 		{error, _} -> {error, "Invalid path"};
@@ -191,22 +191,22 @@ prefix_split (L, R, D) ->
 
 -spec go_up (N::integer(),ztree()) -> ztree().									% selects the parent N times up in the tree
 
-go_up (N, T) when N > 0 -> go_up(N-1,parent(T));
+go_up (T, N) when N > 0 -> go_up(parent(T),N-1);
 
-go_up (_, T) -> T.
+go_up (T, _) -> T.
 
 
 
 -spec go_down (P::treepath(), ztree()) -> ztree().								% ascend the tree following the treepath P
 
-go_down ([],T) -> T;
+go_down (T,[]) -> T;
 
-go_down ([C|R],T) -> go_down(R,go_right(C-1,first_child(T))).
+go_down (T,[C|R]) -> go_down(go_right(C-1,first_child(T)),R).
 
 
 -spec go_right (N::integer(),ztree()) -> ztree().								% move right in the siblings N times
 
-go_right (N, T) when N > 0 -> go_right(N-1,next(T));
+go_right (T, N) when N > 0 -> go_right(next(T),N-1);
 
-go_right (_, T) -> T.
+go_right (T, _) -> T.
 
